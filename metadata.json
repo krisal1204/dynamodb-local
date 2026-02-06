@@ -1,0 +1,5 @@
+{
+  "name": "DynamoDB Local Manager",
+  "description": "A minimalist, local UI for managing a Docker-hosted DynamoDB instance. Supports Table CRUD, TTL, Streams, and advanced Item Query/Scan operations.",
+  "requestFramePermissions": []
+}
