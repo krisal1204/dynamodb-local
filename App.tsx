@@ -4,12 +4,18 @@ import { CreateTable } from './components/CreateTable';
 import { TableDetails } from './components/TableDetails';
 import { Button } from './components/Button';
 import { Modal } from './components/Modal';
+import { Input } from './components/Input';
 
 function App() {
   const [view, setView] = useState<'LIST' | 'CREATE' | 'DETAILS'>('LIST');
   const [selectedTable, setSelectedTable] = useState<string>('');
   const [tables, setTables] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Configuration State
+  const [endpoint, setEndpoint] = useState(dynamoService.getEndpoint());
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [configEndpoint, setConfigEndpoint] = useState(endpoint);
 
   useEffect(() => {
     fetchTables();
@@ -45,6 +51,14 @@ function App() {
     }
   };
 
+  const handleSaveConfig = () => {
+    if (!configEndpoint) return;
+    dynamoService.setEndpoint(configEndpoint);
+    setEndpoint(configEndpoint);
+    setIsConfigOpen(false);
+    fetchTables();
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -54,9 +68,17 @@ function App() {
              <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center font-bold text-white">D</div>
              <h1 className="text-xl font-bold tracking-tight">DynamoDB Local Manager</h1>
           </div>
-          <div className="text-sm text-slate-400">
-            Endpoint: http://localhost:8000
-          </div>
+          <button 
+            onClick={() => { setConfigEndpoint(endpoint); setIsConfigOpen(true); }}
+            className="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-2 group border border-slate-700 hover:border-slate-500 rounded-md px-3 py-1.5"
+            title="Configure Endpoint"
+          >
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              {endpoint}
+            </span>
+            <svg className="w-4 h-4 text-slate-500 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+          </button>
         </div>
       </header>
 
@@ -85,7 +107,7 @@ function App() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {tables.length === 0 ? (
                     <div className="col-span-full text-center py-20 bg-white rounded-lg border border-dashed border-slate-300">
-                      <p className="text-slate-500 mb-4">No tables found in the local instance.</p>
+                      <p className="text-slate-500 mb-4">No tables found.</p>
                       <Button onClick={() => setView('CREATE')}>Create your first table</Button>
                     </div>
                   ) : (
@@ -139,6 +161,25 @@ function App() {
 
         </div>
       </main>
+
+      <Modal isOpen={isConfigOpen} onClose={() => setIsConfigOpen(false)} title="Connection Settings">
+        <div className="space-y-4">
+          <Input 
+            label="DynamoDB Endpoint URL" 
+            value={configEndpoint} 
+            onChange={e => setConfigEndpoint(e.target.value)} 
+            placeholder="http://localhost:8000"
+          />
+          <p className="text-xs text-slate-500">
+            For local Docker instances, this is usually <code>http://localhost:8000</code>. 
+            Ensure your container allows CORS.
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" onClick={() => setIsConfigOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveConfig}>Save & Connect</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -11,9 +11,6 @@ import {
   KeySchemaElement,
   StreamSpecification,
   GlobalSecondaryIndex,
-  ScalarAttributeType,
-  KeyType,
-  ProjectionType,
 } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
@@ -21,23 +18,50 @@ import {
   QueryCommand,
   PutCommand,
   DeleteCommand,
-  UpdateCommand,
-  GetCommand,
 } from "@aws-sdk/lib-dynamodb";
 
-// Configuration for Local DynamoDB
-const client = new DynamoDBClient({
-  endpoint: "http://localhost:8000",
-  region: "us-east-1", // Region doesn't matter for local, but is required
-  credentials: {
-    accessKeyId: "fake",
-    secretAccessKey: "fake",
-  },
-});
+const DEFAULT_ENDPOINT = "http://localhost:8000";
 
-const docClient = DynamoDBDocumentClient.from(client);
+// Helper to get stored endpoint or default
+const getStoredEndpoint = () => {
+  try {
+    return localStorage.getItem("dynamodb_endpoint") || DEFAULT_ENDPOINT;
+  } catch {
+    return DEFAULT_ENDPOINT;
+  }
+};
+
+let currentEndpoint = getStoredEndpoint();
+
+// Helper to create clients
+const createClients = (endpoint: string) => {
+  const c = new DynamoDBClient({
+    endpoint: endpoint,
+    region: "us-east-1",
+    credentials: {
+      accessKeyId: "fake",
+      secretAccessKey: "fake",
+    },
+  });
+  const d = DynamoDBDocumentClient.from(c);
+  return { client: c, docClient: d };
+};
+
+// Initialize mutable client variables
+let { client, docClient } = createClients(currentEndpoint);
 
 export const dynamoService = {
+  // --- Configuration ---
+  getEndpoint: () => currentEndpoint,
+
+  setEndpoint: (newEndpoint: string) => {
+    currentEndpoint = newEndpoint;
+    localStorage.setItem("dynamodb_endpoint", newEndpoint);
+    const clients = createClients(newEndpoint);
+    client = clients.client;
+    docClient = clients.docClient;
+  },
+
   // --- Table Operations ---
 
   listTables: async () => {
